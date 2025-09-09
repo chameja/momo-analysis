@@ -15,4 +15,4 @@
 ---
 ## HRD
 Here is a Draft HRD Architecture Diagram
-![alt text](https://github.com/chameja/momo-analysis/momo_hld.png "Draft HRD Architecture Diagram")
+![alt text](https://github.com/chameja/momo-analysis/blob/main/momo_hld.png "Draft HRD Architecture Diagram")
