@@ -10,7 +10,7 @@
 | Chipo Hameja      |
 | Peter Opara       |
 | Jabes Nshuti      |
-| Emmanuel Akiyole  |
+| Emmanuel Akinloye  |
 
 ---
 [Project Board](https://github.com/users/chameja/projects/1/views/1)
