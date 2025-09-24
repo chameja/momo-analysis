@@ -4,7 +4,8 @@
     { "customer_id": "C002", "full_name": "Peter Opara", "phone_number": "250700222222", "email": "peter@example.com", "created_at": "2025-09-24T12:00:00" },
     { "customer_id": "C003", "full_name": "Charlie King", "phone_number": "250700333333", "email": "charlie@example.com", "created_at": "2025-09-24T12:00:00" },
     { "customer_id": "C004", "full_name": "Diana Prince", "phone_number": "250700444444", "email": "diana@example.com", "created_at": "2025-09-24T12:00:00" },
-    { "customer_id": "C005", "full_name": "Ethan Hunt", "phone_number": "250700555555", "email": "ethan@example.com", "created_at": "2025-09-24T12:00:00" }
+    { "customer_id": "C005", "full_name": "Ethan Hunt", "phone_number": "250700555555", "email": "ethan@example.com", "created_at": "2025-09-24T12:00:00" },
+    { "customer_id": "C006", "full_name": "Jabes Nshuti", "phone_number": "250700554444", "email": "nshuti@example.com", "created_at": "2025-09-24T09:00:00" }
   ],
   "agents": [
     { "agent_id": "A001", "full_name": "Agent One", "phone_number": "250710111111", "location": "Kigali", "created_at": "2025-09-24T12:00:00" },
