@@ -20,12 +20,12 @@ Momo Analysis is a project designed to analyze Mobile Money (MoMo) SMS data for 
 
 ## Team Members
 
-| Name              |
-| ----------------- |
-| Chipo Hameja      |
-| Peter Opara       |
-| Jabes Nshuti      |
-| Emmanuel Akinloye |
+| Name                |
+| --------------------|
+| Chipo Hameja        |
+| Peter Opara         |
+| Jabes Nshuti Ruranga|
+| Emmanuel Akinloye   |
 
 ---
 
