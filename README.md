@@ -96,6 +96,6 @@ Sample data is provided in the SQL setup script and as a JSON file:
 
 [Project Board](https://github.com/users/chameja/projects/1/views/1)
 
-##ERd drawing pdf
+## ERd drawing pdf
 
-[text](../../Downloads/momo_analysis_erd.pdf)
+[text](docs/momo_analysis_erd.pdf)
