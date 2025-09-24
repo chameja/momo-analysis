@@ -1,0 +1,71 @@
+{
+  "customers": [
+    { "customer_id": "C001", "full_name": "AKinloye Emmanuel", "phone_number": "250700111111", "email": "akinloye@example.com", "created_at": "2025-09-24T12:00:00" },
+    { "customer_id": "C002", "full_name": "Peter Opara", "phone_number": "250700222222", "email": "peter@example.com", "created_at": "2025-09-24T12:00:00" },
+    { "customer_id": "C003", "full_name": "Charlie King", "phone_number": "250700333333", "email": "charlie@example.com", "created_at": "2025-09-24T12:00:00" },
+    { "customer_id": "C004", "full_name": "Diana Prince", "phone_number": "250700444444", "email": "diana@example.com", "created_at": "2025-09-24T12:00:00" },
+    { "customer_id": "C005", "full_name": "Ethan Hunt", "phone_number": "250700555555", "email": "ethan@example.com", "created_at": "2025-09-24T12:00:00" }
+  ],
+  "agents": [
+    { "agent_id": "A001", "full_name": "Agent One", "phone_number": "250710111111", "location": "Kigali", "created_at": "2025-09-24T12:00:00" },
+    { "agent_id": "A002", "full_name": "Agent Two", "phone_number": "250710222222", "location": "Musanze", "created_at": "2025-09-24T12:00:00" },
+    { "agent_id": "A003", "full_name": "Agent Three", "phone_number": "250710333333", "location": "Butare", "created_at": "2025-09-24T12:00:00" },
+    { "agent_id": "A004", "full_name": "Agent Four", "phone_number": "250710444444", "location": "Rubavu", "created_at": "2025-09-24T12:00:00" },
+    { "agent_id": "A005", "full_name": "Agent Five", "phone_number": "250710555555", "location": "Nyagatare", "created_at": "2025-09-24T12:00:00" }
+  ],
+  "transactions": [
+    {
+      "transaction_id": "T001",
+      "transaction_type": "Deposit",
+      "amount": 50000,
+      "fee": 500,
+      "transaction_date": "2025-09-24T12:30:00",
+      "customer": { "customer_id": "C001", "full_name": "AKinloye Emmanuel", "phone_number": "250700111111", "email": "akinloye@example.com" },
+      "agent": { "agent_id": "A001", "full_name": "Agent One", "phone_number": "250710111111", "location": "Kigali" },
+      "details": { "deposit_id": "D001", "source": "Bank" }
+    },
+    {
+      "transaction_id": "T002",
+      "transaction_type": "Withdrawal",
+      "amount": 20000,
+      "fee": 200,
+      "transaction_date": "2025-09-24T12:40:00",
+      "customer": { "customer_id": "C002", "full_name": "Peter Opara", "phone_number": "250700222222", "email": "peter@example.com" },
+      "agent": { "agent_id": "A002", "full_name": "Agent Two", "phone_number": "250710222222", "location": "Musanze" },
+      "details": { "withdrawal_id": "W001", "method": "ATM" }
+    },
+    {
+      "transaction_id": "T003",
+      "transaction_type": "Transfer",
+      "amount": 15000,
+      "fee": 150,
+      "transaction_date": "2025-09-24T12:50:00",
+      "customer": { "customer_id": "C003", "full_name": "Charlie King", "phone_number": "250700333333", "email": "charlie@example.com" },
+      "agent": { "agent_id": "A003", "full_name": "Agent Three", "phone_number": "250710333333", "location": "Butare" },
+      "details": { 
+        "transfer_id": "TR001", 
+        "receiver": { "customer_id": "C004", "full_name": "Diana Prince", "phone_number": "250700444444" } 
+      }
+    },
+    {
+      "transaction_id": "T004",
+      "transaction_type": "Payment",
+      "amount": 8000,
+      "fee": 80,
+      "transaction_date": "2025-09-24T13:00:00",
+      "customer": { "customer_id": "C004", "full_name": "Diana Prince", "phone_number": "250700444444", "email": "diana@example.com" },
+      "agent": { "agent_id": "A004", "full_name": "Agent Four", "phone_number": "250710444444", "location": "Rubavu" },
+      "details": { "payment_id": "P001", "category": "Shopping" }
+    },
+    {
+      "transaction_id": "T005",
+      "transaction_type": "Deposit",
+      "amount": 12000,
+      "fee": 120,
+      "transaction_date": "2025-09-24T13:10:00",
+      "customer": { "customer_id": "C005", "full_name": "Ethan Hunt", "phone_number": "250700555555", "email": "ethan@example.com" },
+      "agent": { "agent_id": "A005", "full_name": "Agent Five", "phone_number": "250710555555", "location": "Nyagatare" },
+      "details": { "deposit_id": "D002", "source": "Cash" }
+    }
+  ]
+}
