@@ -1,199 +1,149 @@
--- Database: momo_sms
+-- Drop and recreate the database
+DROP DATABASE IF EXISTS momo_analysis;
+CREATE DATABASE momo_analysis;
+USE momo_analysis;
 
-DROP DATABASE IF EXISTS momo_sms;
-CREATE DATABASE momo_sms;
-USE momo_sms;
-
-
-/* =====================================================
-   CUSTOMER TABLE
-   Stores sender/receiver information
-   ===================================================== */
+---------------------------------------------------------
+-- CUSTOMER TABLE
+---------------------------------------------------------
 CREATE TABLE Customer (
-    customer_id     VARCHAR(10)   PRIMARY KEY COMMENT 'Unique ID for each customer',
-    full_name       VARCHAR(100)  NOT NULL COMMENT 'Customer full name',
-    phone_number    VARCHAR(20)   UNIQUE NOT NULL COMMENT 'Customer phone number',
-    email           VARCHAR(100)  UNIQUE COMMENT 'Optional email address',
-    created_at      DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT 'Customer registration date'
+    customer_id     VARCHAR(50) PRIMARY KEY,
+    customer_name   VARCHAR(50) NOT NULL,
+    customer_number VARCHAR(12) UNIQUE NOT NULL
 );
 
-CREATE INDEX idx_customer_phone ON Customer(phone_number);
-
-
-/* =====================================================
-   AGENT TABLE
-   Represents mobile money agents
-   ===================================================== */
+---------------------------------------------------------
+-- AGENT TABLE
+---------------------------------------------------------
 CREATE TABLE Agent (
-    agent_id        VARCHAR(10)   PRIMARY KEY COMMENT 'Unique ID for each agent',
-    full_name       VARCHAR(100)  NOT NULL COMMENT 'Agent full name',
-    phone_number    VARCHAR(20)   UNIQUE NOT NULL COMMENT 'Agent phone number',
-    location        VARCHAR(100)  COMMENT 'Agent location',
-    created_at      DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT 'Agent registration date'
+    agent_id        VARCHAR(50) PRIMARY KEY,
+    agent_name      VARCHAR(50) NOT NULL,
+    agent_number    VARCHAR(12) UNIQUE NOT NULL
 );
 
-CREATE INDEX idx_agent_phone ON Agent(phone_number);
-
-
-/* =====================================================
-   TRANSACTION TABLE
-   Main record of all transactions
-   ===================================================== */
-CREATE TABLE Transaction (
-    transaction_id   VARCHAR(10)  PRIMARY KEY COMMENT 'Unique ID for each transaction',
-    customer_id      VARCHAR(10)  NOT NULL COMMENT 'FK to Customer',
-    agent_id         VARCHAR(10)  COMMENT 'FK to Agent if agent is involved',
-    transaction_type ENUM('Deposit','Withdrawal','Transfer','Payment') NOT NULL COMMENT 'Transaction type',
-    amount           DECIMAL(12,2) CHECK (amount > 0) COMMENT 'Transaction amount',
-    fee              DECIMAL(12,2) DEFAULT 0 CHECK (fee >= 0) COMMENT 'Fee charged',
-    transaction_date DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT 'When the transaction occurred',
-
-    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
-    FOREIGN KEY (agent_id)    REFERENCES Agent(agent_id)
-);
-
-CREATE INDEX idx_transaction_date ON Transaction(transaction_date);
-
-
-/* =====================================================
-   DEPOSIT TABLE
-   Holds deposit-specific attributes
-   ===================================================== */
+---------------------------------------------------------
+-- DEPOSIT TABLE
+---------------------------------------------------------
 CREATE TABLE Deposit (
-    deposit_id      VARCHAR(10)   PRIMARY KEY COMMENT 'Unique deposit ID',
-    transaction_id  VARCHAR(10)   NOT NULL COMMENT 'FK to Transaction',
-    source          VARCHAR(50)   NOT NULL COMMENT 'Deposit source (cash, bank, etc.)',
+    deposit_id      VARCHAR(50) PRIMARY KEY,
+    customer_id     VARCHAR(50) NOT NULL,
+    amount          FLOAT(10,2) NOT NULL CHECK (amount > 0),
+    time_stamp      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    readable_date   VARCHAR(50),
+    new_balance     FLOAT(10,2),
 
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
         ON DELETE CASCADE
 );
 
-
-/* =====================================================
-   WITHDRAWAL TABLE
-   Holds withdrawal-specific attributes
-   ===================================================== */
+---------------------------------------------------------
+-- WITHDRAWAL TABLE
+---------------------------------------------------------
 CREATE TABLE Withdrawal (
-    withdrawal_id   VARCHAR(10)   PRIMARY KEY COMMENT 'Unique withdrawal ID',
-    transaction_id  VARCHAR(10)   NOT NULL COMMENT 'FK to Transaction',
-    method          VARCHAR(50)   NOT NULL COMMENT 'Withdrawal method (ATM, agent, etc.)',
+    withdrawal_id   VARCHAR(50) PRIMARY KEY,
+    agent_id        VARCHAR(50) NOT NULL,
+    customer_id     VARCHAR(50) NOT NULL,
+    amount          FLOAT(10,2) NOT NULL CHECK (amount > 0),
+    fee             FLOAT(10,2) DEFAULT 0,
+    new_balance     FLOAT(10,2),
+    time_stamp      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    readable_date   VARCHAR(50),
 
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
-        ON DELETE CASCADE
-);
-
-
-/* =====================================================
-   TRANSFER TABLE
-   Holds transfer-specific attributes
-   ===================================================== */
-CREATE TABLE Transfer (
-    transfer_id     VARCHAR(10)   PRIMARY KEY COMMENT 'Unique transfer ID',
-    transaction_id  VARCHAR(10)   NOT NULL COMMENT 'FK to Transaction',
-    receiver_id     VARCHAR(10)   NOT NULL COMMENT 'FK to Customer',
-
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
+    FOREIGN KEY (agent_id) REFERENCES Agent(agent_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id)    REFERENCES Customer(customer_id)
-);
-
-
-/* =====================================================
-   PAYMENT TABLE
-   Holds payment-specific attributes
-   ===================================================== */
-CREATE TABLE Payment (
-    payment_id      VARCHAR(10)   PRIMARY KEY COMMENT 'Unique payment ID',
-    transaction_id  VARCHAR(10)   NOT NULL COMMENT 'FK to Transaction',
-    category        VARCHAR(50)   NOT NULL COMMENT 'Payment category (Bills, Shopping, etc.)',
-
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
         ON DELETE CASCADE
 );
 
-
-/* =====================================================
-   SENDER LOG
-   Tracks sender activity
-   ===================================================== */
+---------------------------------------------------------
+-- SENDER LOG
+---------------------------------------------------------
 CREATE TABLE Sender_Log (
-    log_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Log entry ID',
-    transaction_id  VARCHAR(10) NOT NULL COMMENT 'FK to Transaction',
-    sender_id       VARCHAR(10) NOT NULL COMMENT 'FK to Customer (sender)',
-    log_time        DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT 'Log timestamp',
+    sender_log_id   VARCHAR(50) PRIMARY KEY,
+    customer_id     VARCHAR(50) NOT NULL,
+    transaction_type ENUM('Payment','Transfer'),
 
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (sender_id)      REFERENCES Customer(customer_id)
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+        ON DELETE CASCADE
 );
 
-
-/* =====================================================
-   RECEIVER LOG
-   Tracks receiver activity
-   ===================================================== */
+---------------------------------------------------------
+-- RECEIVER LOG
+---------------------------------------------------------
 CREATE TABLE Receiver_Log (
-    log_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Log entry ID',
-    transaction_id  VARCHAR(10) NOT NULL COMMENT 'FK to Transaction',
-    receiver_id     VARCHAR(10) NOT NULL COMMENT 'FK to Customer (receiver)',
-    log_time        DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT 'Log timestamp',
+    receiver_log_id VARCHAR(50) PRIMARY KEY,
+    customer_id     VARCHAR(50) NOT NULL,
+    transaction_type ENUM('Payment','Transfer'),
 
-    FOREIGN KEY (transaction_id) REFERENCES Transaction(transaction_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id)    REFERENCES Customer(customer_id)
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+        ON DELETE CASCADE
 );
 
+---------------------------------------------------------
+-- TRANSFER TABLE
+---------------------------------------------------------
+CREATE TABLE Transfer (
+    transfer_id     VARCHAR(50) PRIMARY KEY,
+    receiver_log_id VARCHAR(50) NOT NULL,
+    sender_log_id   VARCHAR(50) NOT NULL,
+    amount          FLOAT(10,2) NOT NULL CHECK (amount > 0),
+    fee             FLOAT(10,2) DEFAULT 0,
+    recipient_name  VARCHAR(50),
+    recipient_number INT(10),
+    new_balance     FLOAT(10,2),
 
-/* =====================================================
-   SAMPLE DATA INSERTION
-   At least 5 records per main table
-   ===================================================== */
+    FOREIGN KEY (receiver_log_id) REFERENCES Receiver_Log(receiver_log_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (sender_log_id) REFERENCES Sender_Log(sender_log_id)
+        ON DELETE CASCADE
+);
 
+---------------------------------------------------------
+-- PAYMENT TABLE
+---------------------------------------------------------
+CREATE TABLE Payment (
+    payment_id      VARCHAR(50) PRIMARY KEY,
+    receiver_log_id VARCHAR(50) NOT NULL,
+    sender_log_id   VARCHAR(50) NOT NULL,
+    amount          FLOAT(10,2) NOT NULL CHECK (amount > 0),
+    fee             FLOAT(10,2) DEFAULT 0,
+    new_balance     FLOAT(10,2),
+    time_stamp      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    readable_date   VARCHAR(50),
+
+    FOREIGN KEY (receiver_log_id) REFERENCES Receiver_Log(receiver_log_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (sender_log_id) REFERENCES Sender_Log(sender_log_id)
+        ON DELETE CASCADE
+);
+
+---------------------------------------------------------
+-- SAMPLE DATA
+---------------------------------------------------------
 -- Customers
-INSERT INTO Customer (customer_id, full_name, phone_number, email) VALUES
-('C001', 'AKinloye Emmanuel', '250700111111', 'akinloye@example.com'),
-('C002', 'Peter Opara', '250700222222', 'peter@example.com'),
-('C003', 'Charlie King', '250700333333', 'charlie@example.com'),
-('C004', 'Diana Prince', '250700444444', 'diana@example.com'),
-('C005', 'Ethan Hunt', '250700555555', 'ethan@example.com');
+INSERT INTO Customer VALUES
+('C001', 'Alice', '250700111111'),
+('C002', 'Bob', '250700222222');
 
 -- Agents
-INSERT INTO Agent (agent_id, full_name, phone_number, location) VALUES
-('A001', 'Agent One', '250710111111', 'Kigali'),
-('A002', 'Agent Two', '250710222222', 'Musanze'),
-('A003', 'Agent Three', '250710333333', 'Butare'),
-('A004', 'Agent Four', '250710444444', 'Rubavu'),
-('A005', 'Agent Five', '250710555555', 'Nyagatare');
+INSERT INTO Agent VALUES
+('A001', 'Agent One', '250710111111'),
+('A002', 'Agent Two', '250710222222');
 
--- Transactions
-INSERT INTO Transaction (transaction_id, customer_id, agent_id, transaction_type, amount, fee) VALUES
-('T001', 'C001', 'A001', 'Deposit', 50000, 500),
-('T002', 'C002', 'A002', 'Withdrawal', 20000, 200),
-('T003', 'C003', 'A003', 'Transfer', 15000, 150),
-('T004', 'C004', 'A004', 'Payment', 8000, 80),
-('T005', 'C005', 'A005', 'Deposit', 12000, 120);
+-- Deposits
+INSERT INTO Deposit (deposit_id, customer_id, amount, readable_date, new_balance) VALUES
+('D001', 'C001', 50000, '2025-09-28', 50000);
 
--- Deposit
-INSERT INTO Deposit (deposit_id, transaction_id, source) VALUES
-('D001', 'T001', 'Bank'),
-('D002', 'T005', 'Cash');
+-- Withdrawals
+INSERT INTO Withdrawal (withdrawal_id, agent_id, customer_id, amount, fee, readable_date, new_balance) VALUES
+('W001', 'A001', 'C001', 10000, 100, '2025-09-28', 40000);
 
--- Withdrawal
-INSERT INTO Withdrawal (withdrawal_id, transaction_id, method) VALUES
-('W001', 'T002', 'ATM');
+-- Logs
+INSERT INTO Sender_Log VALUES ('SL001', 'C001', 'Transfer');
+INSERT INTO Receiver_Log VALUES ('RL001', 'C002', 'Transfer');
 
 -- Transfer
-INSERT INTO Transfer (transfer_id, transaction_id, receiver_id) VALUES
-('TR001', 'T003', 'C004');
+INSERT INTO Transfer VALUES ('T001', 'RL001', 'SL001', 15000, 150, 'Bob', 250700222222, 55000);
 
 -- Payment
-INSERT INTO Payment (payment_id, transaction_id, category) VALUES
-('P001', 'T004', 'Shopping');
-
--- Sender logs
-INSERT INTO Sender_Log (transaction_id, sender_id) VALUES
-('T003', 'C003');
-
--- Receiver logs
-INSERT INTO Receiver_Log (transaction_id, receiver_id) VALUES
-('T003', 'C004');
+INSERT INTO Payment VALUES ('P001', 'RL001', 'SL001', 8000, 80, 47000, NOW(), '2025-09-28');
