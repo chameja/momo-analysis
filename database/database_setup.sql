@@ -89,7 +89,7 @@ CREATE TABLE Transfer (
     amount          FLOAT(10,2) NOT NULL CHECK (amount > 0),
     fee             FLOAT(10,2) DEFAULT 0,
     recipient_name  VARCHAR(50),
-    recipient_number INT(10),
+    recipient_number VARCHAR(15),
     new_balance     FLOAT(10,2),
 
     FOREIGN KEY (receiver_log_id) REFERENCES Receiver_Log(receiver_log_id)
@@ -143,7 +143,7 @@ INSERT INTO Sender_Log VALUES ('SL001', 'C001', 'Transfer');
 INSERT INTO Receiver_Log VALUES ('RL001', 'C002', 'Transfer');
 
 -- Transfer
-INSERT INTO Transfer VALUES ('T001', 'RL001', 'SL001', 15000, 150, 'Bob', 250700222222, 55000);
+INSERT INTO Transfer VALUES ('T001', 'RL001', 'SL001', 15000, 150, 'Bob', '250700222222', 55000);
 
 -- Payment
 INSERT INTO Payment VALUES ('P001', 'RL001', 'SL001', 8000, 80, 47000, NOW(), '2025-09-28');
