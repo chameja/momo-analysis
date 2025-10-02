@@ -81,4 +81,4 @@ conn.commit()
 cur.close()
 conn.close()
 
-# print("Data loaded successfully into MySQL database.")
+print("Data loaded successfully into MySQL database.")
