@@ -7,10 +7,8 @@ from pathlib import Path
 import mysql.connector
 from dotenv import load_dotenv
 
-# Get the root folder (one level up from current file)
-root_path = Path(__file__).resolve().parent.parent  # parent of parent
-
-# Load the .env file from the root folder
+# Load environment variables
+root_path = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=root_path / ".env")
 
 DB_CONFIG = {
@@ -23,7 +21,15 @@ DB_CONFIG = {
 API_USER = os.getenv("API_USER")
 API_PASS = os.getenv("API_PASS")
 
-# ---------- Helper DB functions ----------
+TABLE_ID_MAP = {
+    "Deposit": "deposit_id",
+    "Withdrawal": "withdraw_id",
+    "Transfer": "transfer_id",
+    "Payment": "payment_id"
+}
+
+
+# Database helper functions
 def get_db_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
@@ -34,69 +40,214 @@ def fetch_all_transactions():
 
     # Merge transactions from all tables
     query = """
-   SELECT deposit_id AS id, 'Deposit' AS type, customer_id, amount, time_stamp, readable_date, new_balance
-FROM Deposit
-UNION
-SELECT withdrawal_id AS id, 'Withdrawal' AS type, customer_id, amount, time_stamp, readable_date, new_balance
-FROM Withdrawal
-UNION
-SELECT transfer_id AS id, 'Transfer' AS type, sender_log_id AS customer_id, amount, NULL AS time_stamp, NULL AS readable_date, new_balance
-FROM Transfer
-UNION
-SELECT payment_id AS id, 'Payment' AS type, sender_log_id AS customer_id, amount, time_stamp, readable_date, new_balance
-FROM Payment
-"""
+    SELECT deposit_id AS transaction_id, customer_id, 'Deposit' AS type, amount, new_balance, time_stamp, readable_date
+    FROM Deposit
+    UNION ALL
+    SELECT withdraw_id AS transaction_id, customer_id, 'Withdrawal' AS type, amount, new_balance, time_stamp, readable_date
+    FROM Withdrawal
+    UNION ALL
+    SELECT transfer_id AS transaction_id, NULL AS customer_id, 'Transfer' AS type, amount, new_balance, NULL AS time_stamp, NULL AS readable_date
+    FROM Transfer
+    UNION ALL
+    SELECT payment_id AS transaction_id, NULL AS customer_id, 'Payment' AS type, amount, new_balance, time_stamp, readable_date
+    FROM Payment
+    """
     cursor.execute(query)
-    result = cursor.fetchall()
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return results
+
+
+def fetch_transaction(transaction_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    TABLE_ID_MAP = {
+        "Deposit": "deposit_id",
+        "Withdrawal": "withdraw_id",
+        "Transfer": "transfer_id",
+        "Payment": "payment_id"
+    }
+
+    for table, id_field in TABLE_ID_MAP.items():
+        cursor.execute(f"SELECT * FROM {table} WHERE {id_field} = %s", (transaction_id,))
+        result = cursor.fetchone()
+        if result:
+            cursor.close()
+            conn.close()
+            return {"type": table, "data": result}
 
     cursor.close()
     conn.close()
-    return result
-
-def fetch_transaction_by_id(txn_id):
-    all_txns = fetch_all_transactions()
-    for txn in all_txns:
-        if str(txn["id"]) == str(txn_id):
-            return txn
     return None
+
+
 
 def insert_transaction(data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """INSERT INTO Deposit (deposit_id, customer_id, amount, readable_date, new_balance)
-               VALUES (%s, %s, %s, %s, %s)"""
-    cursor.execute(query, (
-        data.get("id"),
-        data.get("customer_id"),
-        data.get("amount"),
-        data.get("readable_date"),
-        data.get("new_balance")
-    ))
+    table = data.get("type")
+    if table == "Deposit":
+        cursor.execute(
+            """
+            INSERT INTO Deposit (deposit_id, customer_id, amount, time_stamp, readable_date, new_balance)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                data["transaction_id"],
+                data.get("customer_id"),
+                data["amount"],
+                data["time_stamp"],
+                data.get("readable_date"),
+                data.get("new_balance"),
+            ),
+        )
+    elif table == "Withdrawal":
+        cursor.execute(
+            """
+            INSERT INTO Withdrawal (withdraw_id, customer_id, agent_id, amount, fee, new_balance, time_stamp, readable_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                data["transaction_id"],
+                data.get("customer_id"),
+                data.get("agent_id"),
+                data["amount"],
+                data.get("fee"),
+                data.get("new_balance"),
+                data["time_stamp"],
+                data.get("readable_date"),
+            ),
+        )
+    elif table == "Transfer":
+        cursor.execute(
+            """
+            INSERT INTO Transfer (transfer_id, sender_log_id, receiver_log_id, amount, fee, recipient_name, recipient_number, new_balance, transfer_type)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                data["transaction_id"],
+                data.get("sender_log_id"),
+                data.get("receiver_log_id"),
+                data["amount"],
+                data.get("fee"),
+                data.get("recipient_name"),
+                data.get("recipient_number"),
+                data.get("new_balance"),
+                data.get("transfer_type"),
+            ),
+        )
+    elif table == "Payment":
+        print(data)
+        cursor.execute(
+            """
+            INSERT INTO Payment (payment_id, sender_log_id, receiver_log_id, amount, fee, new_balance, time_stamp, readable_date, payment_type)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                data["transaction_id"],
+                data.get("sender_log_id"),
+                data.get("receiver_log_id"),
+                data["amount"],
+                data.get("fee"),
+                data.get("new_balance"),
+                data["time_stamp"],
+                data.get("readable_date"),
+                data.get("payment_type"),
+            ),
+        )
+    else:
+        raise ValueError("Unknown transaction type")
 
     conn.commit()
     cursor.close()
     conn.close()
 
 
-def update_transaction(txn_id, data):
+def update_transaction(transaction_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """UPDATE Deposit SET amount=%s, readable_date=%s, new_balance=%s WHERE deposit_id=%s"""
-    cursor.execute(query, (
-        data.get("amount"),
-        data.get("readable_date"),
-        data.get("new_balance"),
-        txn_id
-    ))
+    table = data.get("type")
+    if table == "Deposit":
+        cursor.execute(
+            """
+            UPDATE Deposit SET customer_id=%s, amount=%s, new_balance=%s, time_stamp=%s, readable_date=%s
+            WHERE deposit_id=%s
+            """,
+            (
+                data.get("customer_id"),
+                data.get("amount"),
+                data.get("new_balance"),
+                data.get("time_stamp"),
+                data.get("readable_date"),
+                transaction_id,
+            ),
+        )
+    elif table == "Withdrawal":
+        cursor.execute(
+            """
+            UPDATE Withdrawal SET customer_id=%s, agent_id=%s, amount=%s, fee=%s, new_balance=%s, time_stamp=%s, readable_date=%s
+            WHERE withdraw_id=%s
+            """,
+            (
+                data.get("customer_id"),
+                data.get("agent_id"),
+                data.get("amount"),
+                data.get("fee"),
+                data.get("new_balance"),
+                data.get("time_stamp"),
+                data.get("readable_date"),
+                transaction_id,
+            ),
+        )
+    elif table == "Transfer":
+        cursor.execute(
+            """
+            UPDATE Transfer SET sender_log_id=%s, receiver_log_id=%s, amount=%s, fee=%s, recipient_name=%s, recipient_number=%s, new_balance=%s, transfer_type=%s
+            WHERE transfer_id=%s
+            """,
+            (
+                data.get("sender_log_id"),
+                data.get("receiver_log_id"),
+                data.get("amount"),
+                data.get("fee"),
+                data.get("recipient_name"),
+                data.get("recipient_number"),
+                data.get("new_balance"),
+                data.get("transfer_type"),
+                transaction_id,
+            ),
+        )
+    elif table == "Payment":
+        cursor.execute(
+            """
+            UPDATE Payment SET sender_log_id=%s, receiver_log_id=%s, amount=%s, fee=%s, new_balance=%s, time_stamp=%s, readable_date=%s, payment_type=%s
+            WHERE payment_id=%s
+            """,
+            (
+                data.get("sender_log_id"),
+                data.get("receiver_log_id"),
+                data.get("amount"),
+                data.get("fee"),
+                data.get("new_balance"),
+                data.get("time_stamp"),
+                data.get("readable_date"),
+                data.get("payment_type"),
+                transaction_id,
+            ),
+        )
+    else:
+        raise ValueError("Unknown transaction type")
 
     conn.commit()
     cursor.close()
     conn.close()
 
 
-def delete_transaction(txn_id):
+def delete_transaction(transaction_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -107,18 +258,11 @@ def delete_transaction(txn_id):
     cursor.close()
     conn.close()
 
-# ---------- HTTP Server with Auth ----------
+# HTTP Request Handler
 class RequestHandler(BaseHTTPRequestHandler):
-
-    def _set_headers(self, status=200):
-        self.send_response(status)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-
-    def _send_unauthorized(self):
+    def do_AUTHHEAD(self):
         self.send_response(401)
-        self.send_header("WWW-Authenticate", 'Basic realm="Access to Transactions API"')
-        self.send_header("Content-type", "application/json")
+        self.send_header("WWW-Authenticate", 'Basic realm="SMS API"')
         self.end_headers()
 
     def authenticate(self):
@@ -134,7 +278,13 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.do_AUTHHEAD()
         return False
 
-    # ------------- Endpoints -------------
+    def parse_json_body(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        if content_length == 0:
+            return {}
+        body = self.rfile.read(content_length)
+        return json.loads(body)
+
     def do_GET(self):
         if not self.authenticate():
             return
@@ -202,10 +352,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 
+# Run the server
 def run(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
     server_address = ("", port)
     httpd = server_class(server_address, handler_class)
-    print(f" Server running at http://localhost:{port}/")
+    print(f"Server running on http://localhost:{port}")
     httpd.serve_forever()
 
 
