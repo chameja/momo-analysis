@@ -2,3 +2,4 @@
 data.json
 modified_sms_v2 (1).xml
 .env
+data/processed/formatted_data.json
