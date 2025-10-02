@@ -5,13 +5,13 @@ from urllib.parse import urlparse, parse_qs
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import base64
 
 # Get the root folder (one level up from current file)
 root_path = Path(__file__).resolve().parent.parent  # parent of parent
 
 # Load the .env file from the root folder
 load_dotenv(dotenv_path=root_path / ".env")
-
 
 # Database configuration
 DB_CONFIG = {
@@ -20,6 +20,10 @@ DB_CONFIG = {
     "password": os.getenv("DB_PASSWORD"),
     "database": os.getenv("DB_NAME")
 }
+
+# API credentials for Basic Auth
+API_USER = os.getenv("API_USER")
+API_PASS = os.getenv("API_PASS")
 
 # ---------- Helper DB functions ----------
 def get_db_connection():
@@ -30,18 +34,18 @@ def fetch_all_transactions():
     cursor = conn.cursor(dictionary=True)
 
     query = """
-    SELECT deposit_id AS id, 'Deposit' AS type, customer_id, amount, time_stamp, readable_date, new_balance
-    FROM Deposit
-    UNION
-    SELECT withdrawal_id, 'Withdrawal', customer_id, amount, time_stamp, readable_date, new_balance
-    FROM Withdrawal
-    UNION
-    SELECT transfer_id, 'Transfer', sender_log_id, amount, NULL, NULL, new_balance
-    FROM Transfer
-    UNION
-    SELECT payment_id, 'Payment', sender_log_id, amount, time_stamp, readable_date, new_balance
-    FROM Payment
-    """
+   SELECT deposit_id AS id, 'Deposit' AS type, customer_id, amount, time_stamp, readable_date, new_balance
+FROM Deposit
+UNION
+SELECT withdrawal_id AS id, 'Withdrawal' AS type, customer_id, amount, time_stamp, readable_date, new_balance
+FROM Withdrawal
+UNION
+SELECT transfer_id AS id, 'Transfer' AS type, sender_log_id AS customer_id, amount, NULL AS time_stamp, NULL AS readable_date, new_balance
+FROM Transfer
+UNION
+SELECT payment_id AS id, 'Payment' AS type, sender_log_id AS customer_id, amount, time_stamp, readable_date, new_balance
+FROM Payment
+"""
     cursor.execute(query)
     result = cursor.fetchall()
 
@@ -52,7 +56,7 @@ def fetch_all_transactions():
 def fetch_transaction_by_id(txn_id):
     all_txns = fetch_all_transactions()
     for txn in all_txns:
-        if txn["id"] == txn_id:
+        if str(txn["id"]) == str(txn_id):
             return txn
     return None
 
@@ -104,7 +108,7 @@ def delete_transaction(txn_id):
     conn.close()
     return True
 
-# ---------- HTTP Server ----------
+# ---------- HTTP Server with Auth ----------
 class RequestHandler(BaseHTTPRequestHandler):
 
     def _set_headers(self, status=200):
@@ -112,7 +116,38 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
+    def _send_unauthorized(self):
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Access to Transactions API"')
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"error": "Unauthorized"}).encode())
+
+    def _check_auth(self):
+        auth_header = self.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Basic "):
+            self._send_unauthorized()
+            return False
+
+        encoded_creds = auth_header.split(" ")[1]
+        try:
+            decoded_creds = base64.b64decode(encoded_creds).decode("utf-8")
+            username, password = decoded_creds.split(":", 1)
+        except Exception:
+            self._send_unauthorized()
+            return False
+
+        if username == API_USER and password == API_PASS:
+            return True
+        else:
+            self._send_unauthorized()
+            return False
+
+    # ------------- Endpoints -------------
     def do_GET(self):
+        if not self._check_auth():
+            return
+
         path_parts = self.path.strip("/").split("/")
 
         if self.path == "/transactions":
@@ -134,6 +169,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": "Not found"}).encode())
 
     def do_POST(self):
+        if not self._check_auth():
+            return
+
         if self.path == "/transactions":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
@@ -148,6 +186,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": "Not found"}).encode())
 
     def do_PUT(self):
+        if not self._check_auth():
+            return
+
         path_parts = self.path.strip("/").split("/")
         if len(path_parts) == 2 and path_parts[0] == "transactions":
             txn_id = path_parts[1]
@@ -164,6 +205,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": "Not found"}).encode())
 
     def do_DELETE(self):
+        if not self._check_auth():
+            return
+
         path_parts = self.path.strip("/").split("/")
         if len(path_parts) == 2 and path_parts[0] == "transactions":
             txn_id = path_parts[1]
@@ -175,11 +219,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._set_headers(404)
             self.wfile.write(json.dumps({"error": "Not found"}).encode())
 
-# ---------- Run server ----------
+
 def run(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
     server_address = ("", port)
     httpd = server_class(server_address, handler_class)
-    print(f"✅ Server running at http://localhost:{port}")
+    print(f" Server running at http://localhost:{port}/")
     httpd.serve_forever()
 
 if __name__ == "__main__":
