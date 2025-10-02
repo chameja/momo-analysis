@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 import os
 import mysql.connector
 
+load_dotenv()
+
 # Update these with your MySQL credentials
 MYSQL_CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -81,4 +83,4 @@ conn.commit()
 cur.close()
 conn.close()
 
-# print("Data loaded successfully into MySQL database.")
+print("Data loaded successfully into MySQL database.")
