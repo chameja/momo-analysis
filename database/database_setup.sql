@@ -1,3 +1,6 @@
+-- Drop the database if it already exists
+DROP DATABASE IF EXISTS momo_analysis;
+
 -- Create Database
 CREATE DATABASE momo_analysis;
 USE momo_analysis;
