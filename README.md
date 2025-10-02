@@ -18,6 +18,151 @@ Momo Analysis is a project designed to analyze Mobile Money (MoMo) SMS data for 
 
 ---
 
+## ETL & Database Setup Guide
+
+This guide will walk you through the process of:
+1. **Formatting your raw MoMo XML data**
+2. **Setting up your MySQL database schema**
+3. **Loading the formatted data into your MySQL database**
+
+---
+
+### Prerequisites
+
+- **Python 3.7+**
+- **MySQL Server** (local or remote)
+- **pip** (Python package manager)
+- (Optional) **virtualenv** for isolated Python environments
+
+---
+
+### 1. Install Python Dependencies
+
+Install the required Python packages:
+
+```sh
+pip install mysql-connector-python python-dotenv
+```
+
+> If you use a `requirements.txt`, add:
+> ```
+> mysql-connector-python
+> python-dotenv
+> ```
+
+---
+
+### 2. Prepare Your Environment Variables
+
+Create a `.env` file in your project root with your MySQL credentials:
+
+```
+DB_HOST=localhost
+DB_USER=your_mysql_user
+DB_PASSWORD=your_mysql_password
+DB_NAME=momo_analysis
+```
+
+---
+
+### 3. Format the Raw MoMo XML Data
+
+**Input:** `data/raw/momo.xml`  
+**Output:** `data/processed/formatted_data.json`
+
+Run the XML parsing script to convert your raw SMS data into a structured JSON file:
+
+```sh
+python etl/parse_xml.py
+```
+
+- This will read `data/raw/momo.xml` and output `data/processed/formatted_data.json`.
+- The script is memory-efficient and can handle very large XML files.
+
+---
+
+### 4. Set Up the MySQL Database Schema
+
+Run the SQL setup script to create all necessary tables and relationships:
+
+```sh
+mysql -u your_mysql_user -p < database/database_setup.sql
+```
+
+- This will create the `momo_analysis` database and all required tables.
+- You can also run the script in MySQL Workbench or another GUI.
+
+---
+
+### 5. Load the Formatted Data into MySQL
+
+Run the loader script to insert the JSON data into your MySQL database:
+
+```sh
+python etl/load_json_to_mysql.py
+```
+
+- This script reads from `data/processed/formatted_data.json` and inserts the data into the corresponding MySQL tables.
+- It uses the credentials from your `.env` file.
+
+---
+
+### 6. Verify Your Data
+
+You can now connect to your MySQL database and run queries, for example:
+
+```sql
+USE momo_analysis;
+SELECT * FROM Customer LIMIT 10;
+SELECT * FROM Deposit WHERE amount > 10000;
+```
+
+Or use a GUI tool like MySQL Workbench or DBeaver to browse your data.
+
+---
+
+### File Overview
+
+- **etl/parse_xml.py**: Parses and formats the raw MoMo XML file into structured JSON.
+- **database/database_setup.sql**: SQL script to create the normalized database schema.
+- **etl/load_json_to_mysql.py**: Loads the formatted JSON data into the MySQL database.
+- **data/raw/momo.xml**: Your raw SMS export file.
+- **data/processed/formatted_data.json**: The formatted, ready-to-import data.
+
+---
+
+### Troubleshooting
+
+- **MySQL connection errors:** Double-check your `.env` file and ensure MySQL is running.
+- **Missing dependencies:** Run `pip install -r requirements.txt` if you have a requirements file.
+- **Large file issues:** The scripts are designed to be memory-efficient, but ensure you have enough disk space for the output JSON.
+
+---
+
+### Example Workflow
+
+```sh
+# 1. Install dependencies
+pip install mysql-connector-python python-dotenv
+
+# 2. Prepare .env file with your DB credentials
+
+# 3. Format the XML data
+python etl/parse_xml.py
+
+# 4. Set up the database schema
+mysql -u your_mysql_user -p < database/database_setup.sql
+
+# 5. Load data into MySQL
+python etl/load_json_to_mysql.py
+```
+
+---
+
+**You are now ready to analyze your MoMo data using SQL or any analytics tool!**
+
+---
+
 ## Team Members
 
 | Name                |
